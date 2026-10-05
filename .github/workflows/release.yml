@@ -144,25 +144,88 @@ jobs:
           
           # Render Cask
           cat << EOF > tap-repo/Casks/later.rb
-          cask "later" do
-            version "${{ env.BASE_VERSION }}"
-            sha256 "${{ env.DMG_SHA256 }}"
+cask "later" do
+  version "${{ env.BASE_VERSION }}"
+  sha256 "${{ env.DMG_SHA256 }}"
 
-            url "https://github.com/Timo-In/later/releases/download/${{ env.RELEASE_TAG }}/Later.dmg"
-            name "Later"
-            desc "Mac menu bar app that clears and restores your workspace with ease"
-            homepage "https://github.com/Timo-In/later"
+  url "https://github.com/Timo-In/later/releases/download/${{ env.RELEASE_TAG }}/Later.dmg"
+  name "Later"
+  desc "Mac menu bar app that clears and restores your workspace with ease"
+  homepage "https://github.com/Timo-In/later"
 
-            app "Later.app"
+  app "Later.app"
 
-            zap trash: [
-              "~/Library/Application Support/Later",
-              "~/Library/Preferences/com.alyssaxuu.Later.plist",
-            ]
-          end
-          EOF
+  zap trash: [
+    "~/Library/Application Support/Later",
+    "~/Library/Preferences/com.alyssaxuu.Later.plist",
+  ]
+end
+EOF
 
+          # Dynamically regenerate README.md based on available Casks and Formulae
           cd tap-repo
-          git add Casks/later.rb
-          git commit -m "Update Later Cask to ${{ env.RELEASE_TAG }}" || true
+          cat << 'EOF' > README.md
+# Timo-In/homebrew-tap
+
+Personal Homebrew Tap for developer tools and macOS applications.
+
+## How to Install
+
+First, add this tap to your Homebrew environment:
+
+```bash
+brew tap Timo-In/tap
+```
+
+Then, you can install any formula or cask provided by this tap:
+
+EOF
+
+          # List all Casks dynamically
+          if [ -d "Casks" ] && ls Casks/*.rb 1> /dev/null 2>&1; then
+            echo "### Casks (GUI Applications)" >> README.md
+            echo "" >> README.md
+            for file in Casks/*.rb; do
+              name=$(basename "$file" .rb)
+              echo "- **$name**" >> README.md
+              echo "" >> README.md
+              echo "  \`\`\`bash" >> README.md
+              echo "  brew install --cask $name" >> README.md
+              echo "  \`\`\`" >> README.md
+              echo "" >> README.md
+            done
+          fi
+
+          # List all Formulae dynamically
+          if [ -d "Formula" ] && ls Formula/*.rb 1> /dev/null 2>&1; then
+            echo "### Formulae (CLI Tools)" >> README.md
+            echo "" >> README.md
+            for file in Formula/*.rb; do
+              name=$(basename "$file" .rb)
+              echo "- **$name**" >> README.md
+              echo "" >> README.md
+              echo "  \`\`\`bash" >> README.md
+              echo "  brew install $name" >> README.md
+              echo "  \`\`\`" >> README.md
+              echo "" >> README.md
+            done
+          fi
+
+          cat << 'EOF' >> README.md
+## Update & Maintenance
+
+To update the formulae/casks in this tap to the latest versions:
+
+```bash
+brew update
+brew upgrade
+```
+
+## 📜 License
+
+The formulae and casks in this repository are available under the [MIT License](LICENSE).
+EOF
+
+          git add Casks/later.rb README.md
+          git commit -m "Update Later Cask to ${{ env.RELEASE_TAG }} and regenerate README" || true
           git push origin HEAD || git push origin main || true
