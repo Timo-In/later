@@ -130,7 +130,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync Homebrew Tap Cask (Optional)
-        if: env.TAP_GITHUB_TOKEN != ''
+        if: ${{ secrets.TAP_GITHUB_TOKEN != '' }}
         env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
@@ -165,4 +165,4 @@ jobs:
           cd tap-repo
           git add Casks/later.rb
           git commit -m "Update Later Cask to ${{ env.RELEASE_TAG }}" || true
-          git push origin main || git push origin master || true
+          git push origin HEAD || git push origin main || true

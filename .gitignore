@@ -1,0 +1,12 @@
+# Xcode & Build products
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcuserstate
+
+# Local clones & temporary files
+homebrew-tap/
+dist/
+release_notes.md
+.DS_Store
