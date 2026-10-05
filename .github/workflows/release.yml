@@ -162,70 +162,7 @@ cask "later" do
 end
 EOF
 
-          # Dynamically regenerate README.md based on available Casks and Formulae
           cd tap-repo
-          cat << 'EOF' > README.md
-# Timo-In/homebrew-tap
-
-Personal Homebrew Tap for developer tools and macOS applications.
-
-## How to Install
-
-First, add this tap to your Homebrew environment:
-
-```bash
-brew tap Timo-In/tap
-```
-
-Then, you can install any formula or cask provided by this tap:
-
-EOF
-
-          # List all Casks dynamically
-          if [ -d "Casks" ] && ls Casks/*.rb 1> /dev/null 2>&1; then
-            echo "### Casks (GUI Applications)" >> README.md
-            echo "" >> README.md
-            for file in Casks/*.rb; do
-              name=$(basename "$file" .rb)
-              echo "- **$name**" >> README.md
-              echo "" >> README.md
-              echo "  \`\`\`bash" >> README.md
-              echo "  brew install --cask $name" >> README.md
-              echo "  \`\`\`" >> README.md
-              echo "" >> README.md
-            done
-          fi
-
-          # List all Formulae dynamically
-          if [ -d "Formula" ] && ls Formula/*.rb 1> /dev/null 2>&1; then
-            echo "### Formulae (CLI Tools)" >> README.md
-            echo "" >> README.md
-            for file in Formula/*.rb; do
-              name=$(basename "$file" .rb)
-              echo "- **$name**" >> README.md
-              echo "" >> README.md
-              echo "  \`\`\`bash" >> README.md
-              echo "  brew install $name" >> README.md
-              echo "  \`\`\`" >> README.md
-              echo "" >> README.md
-            done
-          fi
-
-          cat << 'EOF' >> README.md
-## Update & Maintenance
-
-To update the formulae/casks in this tap to the latest versions:
-
-```bash
-brew update
-brew upgrade
-```
-
-## 📜 License
-
-The formulae and casks in this repository are available under the [MIT License](LICENSE).
-EOF
-
-          git add Casks/later.rb README.md
-          git commit -m "Update Later Cask to ${{ env.RELEASE_TAG }} and regenerate README" || true
+          git add Casks/later.rb
+          git commit -m "Update Later Cask to ${{ env.RELEASE_TAG }}" || true
           git push origin HEAD || git push origin main || true
