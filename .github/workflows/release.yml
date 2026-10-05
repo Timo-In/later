@@ -71,22 +71,21 @@ jobs:
       - name: Package DMG and ZIP
         run: |
           mkdir -p dist/dmg
-          cp -R build/Build/Products/Release/Later.app dist/dmg/
-          ln -s /Applications dist/dmg/Applications
+          APP_PATH=$(find build/Build/Products/Release -name "Later.app" -type d | head -n 1)
+          cp -R "$APP_PATH" dist/dmg/
+          ln -sf /Applications dist/dmg/Applications
 
           # Create DMG
           hdiutil create -volname "Later" -srcfolder dist/dmg -ov -format UDZO dist/Later.dmg
 
-          # Create ZIP
-          cd build/Build/Products/Release
-          zip -r -y ../../../dist/Later.zip Later.app
-          cd -
+          # Create ZIP using native macOS ditto (preserves symlinks and metadata)
+          ditto -c -k --keepParent "$APP_PATH" dist/Later.zip
 
           # Generate SHA-256 checksums
           cd dist
           shasum -a 256 Later.dmg > Later.dmg.sha256
           shasum -a 256 Later.zip > Later.zip.sha256
-          DMG_SHA256=$(cat Later.dmg.sha256 | awk '{print $1}')
+          DMG_SHA256=$(awk '{print $1}' Later.dmg.sha256)
           echo "DMG_SHA256=$DMG_SHA256" >> $GITHUB_ENV
           cd -
 
