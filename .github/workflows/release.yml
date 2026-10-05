@@ -1,0 +1,168 @@
+name: Release Later
+
+on:
+  push:
+    branches:
+      - timo/dev
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release (optional, e.g. v1.91)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || true
+          xcodebuild -version
+
+      - name: Determine Version and Tag
+        id: versioning
+        run: |
+          # Extract MARKETING_VERSION from Xcode project
+          BASE_VERSION=$(grep -m1 "MARKETING_VERSION" xcode/Later.xcodeproj/project.pbxproj | awk '{print $3}' | tr -d ';')
+          if [ -z "$BASE_VERSION" ]; then
+            BASE_VERSION="1.91"
+          fi
+          
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            RELEASE_TAG="${{ github.ref_name }}"
+            IS_PRERELEASE="false"
+          elif [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            RELEASE_TAG="${{ github.event.inputs.tag_name }}"
+            IS_PRERELEASE="false"
+          else
+            # For pushes to timo/dev, create a rolling dev release tag
+            RELEASE_TAG="v${BASE_VERSION}-dev.${{ github.run_number }}"
+            IS_PRERELEASE="false"
+          fi
+
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          echo "BASE_VERSION=$BASE_VERSION" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
+          echo "tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "version=$BASE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build macOS App
+        run: |
+          xcodebuild -project xcode/Later.xcodeproj \
+            -scheme Later \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package DMG and ZIP
+        run: |
+          mkdir -p dist/dmg
+          cp -R build/Build/Products/Release/Later.app dist/dmg/
+          ln -s /Applications dist/dmg/Applications
+
+          # Create DMG
+          hdiutil create -volname "Later" -srcfolder dist/dmg -ov -format UDZO dist/Later.dmg
+
+          # Create ZIP
+          cd build/Build/Products/Release
+          zip -r -y ../../../dist/Later.zip Later.app
+          cd -
+
+          # Generate SHA-256 checksums
+          cd dist
+          shasum -a 256 Later.dmg > Later.dmg.sha256
+          shasum -a 256 Later.zip > Later.zip.sha256
+          DMG_SHA256=$(cat Later.dmg.sha256 | awk '{print $1}')
+          echo "DMG_SHA256=$DMG_SHA256" >> $GITHUB_ENV
+          cd -
+
+      - name: Generate Release Notes & Homebrew Cask snippet
+        run: |
+          cat << 'EOF' > release_notes.md
+          ### Later for macOS
+
+          Automated build release for **Later**.
+
+          #### Download Assets
+          - **Later.dmg**: Standard macOS installer disk image.
+          - **Later.zip**: Compressed `.app` bundle.
+
+          #### Homebrew Cask Configuration
+          To install via Homebrew tap (`Timo-In/homebrew-tap`):
+          ```bash
+          brew tap Timo-In/tap
+          brew install --cask later
+          ```
+
+          #### Checksums (SHA-256)
+          EOF
+
+          echo "- \`Later.dmg\`: \`${{ env.DMG_SHA256 }}\`" >> release_notes.md
+          echo "" >> release_notes.md
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Later ${{ env.RELEASE_TAG }}
+          body_path: release_notes.md
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          files: |
+            dist/Later.dmg
+            dist/Later.zip
+            dist/Later.dmg.sha256
+            dist/Later.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync Homebrew Tap Cask (Optional)
+        if: env.TAP_GITHUB_TOKEN != ''
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          echo "Syncing updated cask to Timo-In/homebrew-tap repository..."
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Clone tap repo
+          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/Timo-In/homebrew-tap.git tap-repo || exit 0
+          mkdir -p tap-repo/Casks
+          
+          # Render Cask
+          cat << EOF > tap-repo/Casks/later.rb
+          cask "later" do
+            version "${{ env.BASE_VERSION }}"
+            sha256 "${{ env.DMG_SHA256 }}"
+
+            url "https://github.com/Timo-In/later/releases/download/${{ env.RELEASE_TAG }}/Later.dmg"
+            name "Later"
+            desc "Mac menu bar app that clears and restores your workspace with ease"
+            homepage "https://github.com/Timo-In/later"
+
+            app "Later.app"
+
+            zap trash: [
+              "~/Library/Application Support/Later",
+              "~/Library/Preferences/com.alyssaxuu.Later.plist",
+            ]
+          end
+          EOF
+
+          cd tap-repo
+          git add Casks/later.rb
+          git commit -m "Update Later Cask to ${{ env.RELEASE_TAG }}" || true
+          git push origin main || git push origin master || true

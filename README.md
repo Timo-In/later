@@ -29,12 +29,26 @@ Note: I am not maintaining this project any longer, I have open sourced it so an
 👻 Hide or close all your apps<br> ⚡️ Restore your session with just one click<br> 👀 View metadata and a preview of your saved sessions<br> ⏱ Schedule apps to reopen after some time to get back in the flow<br> 🔋 Save battery by closing your apps instead of leaving them open<br> ⌨️ Keyboard shortcuts to save and restore your session<br> ⚙️ Advanced settings to ignore apps, terminate instead of hiding, etc.
 
 ## Installing Later
-You can install Later on macOS 11.6 or later.
-1. [Click here](https://github.com/alyssaxuu/later/raw/master/Later.dmg) to download the latest version. You can also download the [Later.dmg](https://github.com/alyssaxuu/later/blob/master/Later.dmg) file from this repo.
-2.  Drag the Later app into the Applications folder.
-3.  Right click while holding the Control key on the Later app, and select "Open" from the context menu.
-4. You will be prompted with an alert saying that the app can't be opened because Apple cannot check it for malicious software (it's not signed). You can open it anyway by clicking "Open".
-5. Later will open as an item on your menu bar.
+You can install Later on macOS 12.0 or later.
+
+### Option 1: Via Homebrew (Recommended)
+You can install Later directly using Homebrew from the tap repository:
+```bash
+brew tap Timo-In/tap
+brew install --cask later
+```
+
+To update Later via brew in the future:
+```bash
+brew upgrade --cask later
+```
+
+### Option 2: Direct Download (.dmg)
+1. Download the latest installer `Later.dmg` from the [GitHub Releases](https://github.com/Timo-In/later/releases).
+2. Open `Later.dmg` and drag the **Later** app into your `/Applications` folder.
+3. Right-click while holding the `Control` key on the **Later** app in Applications, and select **"Open"** from the context menu (or open System Settings -> Privacy & Security to allow it).
+4. Since the application is not notarized with an Apple Developer certificate, macOS will ask for confirmation. Click **"Open"** to proceed (or run `xattr -cr /Applications/Later.app` in Terminal if needed).
+5. Later will launch and stay accessible directly in your menu bar.
 
 You can read the [FAQ](https://necessary-duke-5f6.notion.site/FAQ-c1a7231ecf34441e9d3d6944199e4705) if you have any questions.
 
