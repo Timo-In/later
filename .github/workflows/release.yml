@@ -130,10 +130,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync Homebrew Tap Cask (Optional)
-        if: ${{ secrets.TAP_GITHUB_TOKEN != '' }}
         env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
+          if [ -z "$TAP_GITHUB_TOKEN" ]; then
+            echo "TAP_GITHUB_TOKEN is not configured. Skipping Homebrew Tap sync."
+            exit 0
+          fi
+
           echo "Syncing updated cask to Timo-In/homebrew-tap repository..."
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
