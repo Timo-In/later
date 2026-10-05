@@ -144,23 +144,23 @@ jobs:
           
           # Render Cask
           cat << EOF > tap-repo/Casks/later.rb
-cask "later" do
-  version "${{ env.BASE_VERSION }}"
-  sha256 "${{ env.DMG_SHA256 }}"
+          cask "later" do
+            version "${{ env.BASE_VERSION }}"
+            sha256 "${{ env.DMG_SHA256 }}"
 
-  url "https://github.com/Timo-In/later/releases/download/${{ env.RELEASE_TAG }}/Later.dmg"
-  name "Later"
-  desc "Mac menu bar app that clears and restores your workspace with ease"
-  homepage "https://github.com/Timo-In/later"
+            url "https://github.com/Timo-In/later/releases/download/${{ env.RELEASE_TAG }}/Later.dmg"
+            name "Later"
+            desc "Mac menu bar app that clears and restores your workspace with ease"
+            homepage "https://github.com/Timo-In/later"
 
-  app "Later.app"
+            app "Later.app"
 
-  zap trash: [
-    "~/Library/Application Support/Later",
-    "~/Library/Preferences/com.alyssaxuu.Later.plist",
-  ]
-end
-EOF
+            zap trash: [
+              "~/Library/Application Support/Later",
+              "~/Library/Preferences/com.alyssaxuu.Later.plist",
+            ]
+          end
+          EOF
 
           cd tap-repo
           git add Casks/later.rb
